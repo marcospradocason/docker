@@ -1,2 +1,2 @@
 *.iml
-.env
+#.env
