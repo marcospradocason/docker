@@ -135,18 +135,18 @@ services:
     networks:
       - network_opencti
     healthcheck:
-      test:  ["CMD", "wget", "-qO-", "http://opencti:8080/health?health_access_key=${OPENCTI_HEALTHCHECK_ACCESS_KEY}"]
+      test:  ["CMD", "wget", "-qO-", "${OPENCTI_BASE_URL}/health?health_access_key=${OPENCTI_HEALTHCHECK_ACCESS_KEY}"]
     #  test: ["CMD","echo","teste OK"]
       interval: 10s
       timeout: 5s
-      retries: 3
+      retries: 30
 
   worker:
     container_name: opencti_worker
     image: opencti/worker:6.4.5
     platform: linux/amd64
     environment:
-      - OPENCTI_URL=http://opencti:8080
+      - OPENCTI_URL=${OPENCTI_BASE_URL}
       - OPENCTI_TOKEN=${OPENCTI_ADMIN_TOKEN}
       - WORKER_LOG_LEVEL=info
     depends_on:
@@ -164,7 +164,7 @@ services:
     image: opencti/connector-export-file-stix:6.4.5
     platform: linux/amd64
     environment:
-      - OPENCTI_URL=http://opencti:8080
+      - OPENCTI_URL=${OPENCTI_BASE_URL}
       - OPENCTI_TOKEN=${OPENCTI_ADMIN_TOKEN}
       - CONNECTOR_ID=${CONNECTOR_EXPORT_FILE_STIX_ID} # Valid UUIDv4
       - CONNECTOR_TYPE=INTERNAL_EXPORT_FILE
@@ -183,7 +183,7 @@ services:
     image: opencti/connector-export-file-csv:6.4.5
     platform: linux/amd64
     environment:
-      - OPENCTI_URL=http://opencti:8080
+      - OPENCTI_URL=${OPENCTI_BASE_URL}
       - OPENCTI_TOKEN=${OPENCTI_ADMIN_TOKEN}
       - CONNECTOR_ID=${CONNECTOR_EXPORT_FILE_CSV_ID} # Valid UUIDv4
       - CONNECTOR_TYPE=INTERNAL_EXPORT_FILE
@@ -202,7 +202,7 @@ services:
     image: opencti/connector-export-file-txt:6.4.5
     platform: linux/amd64
     environment:
-      - OPENCTI_URL=http://opencti:8080
+      - OPENCTI_URL=${OPENCTI_BASE_URL}
       - OPENCTI_TOKEN=${OPENCTI_ADMIN_TOKEN}
       - CONNECTOR_ID=${CONNECTOR_EXPORT_FILE_TXT_ID} # Valid UUIDv4
       - CONNECTOR_TYPE=INTERNAL_EXPORT_FILE
@@ -221,7 +221,7 @@ services:
     image: opencti/connector-import-file-stix:6.4.5
     platform: linux/amd64
     environment:
-      - OPENCTI_URL=http://opencti:8080
+      - OPENCTI_URL=${OPENCTI_BASE_URL}
       - OPENCTI_TOKEN=${OPENCTI_ADMIN_TOKEN}
       - CONNECTOR_ID=${CONNECTOR_IMPORT_FILE_STIX_ID} # Valid UUIDv4
       - CONNECTOR_TYPE=INTERNAL_IMPORT_FILE
@@ -242,7 +242,7 @@ services:
     image: opencti/connector-import-document:6.4.5
     platform: linux/amd64
     environment:
-      - OPENCTI_URL=http://opencti:8080
+      - OPENCTI_URL=${OPENCTI_BASE_URL}
       - OPENCTI_TOKEN=${OPENCTI_ADMIN_TOKEN}
       - CONNECTOR_ID=${CONNECTOR_IMPORT_DOCUMENT_ID} # Valid UUIDv4
       - CONNECTOR_TYPE=INTERNAL_IMPORT_FILE
@@ -266,7 +266,7 @@ services:
     image: opencti/connector-import-document:6.4.5
     platform: linux/amd64
     environment:
-      - OPENCTI_URL=http://opencti:8080
+      - OPENCTI_URL=${OPENCTI_BASE_URL}
       - OPENCTI_TOKEN=${OPENCTI_ADMIN_TOKEN}
       - CONNECTOR_ID=${CONNECTOR_ANALYSIS_ID} # Valid UUIDv4
       - CONNECTOR_TYPE=INTERNAL_ANALYSIS
@@ -283,7 +283,32 @@ services:
     depends_on:
       opencti:
         condition: service_healthy
-        
+
+  connector-cve:
+    container_name: opencti_con_cve
+    image: opencti/connector-cve:6.4.5
+    platform: linux/amd64
+    environment:
+      - OPENCTI_URL=${OPENCTI_BASE_URL}
+      - OPENCTI_TOKEN=${OPENCTI_ADMIN_TOKEN}
+      - CONNECTOR_ID=${CONNECTOR_CVE_ID}
+      - CONNECTOR_NAME=Common Vulnerabilities and Exposures
+      - CONNECTOR_SCOPE=identity,vulnerability
+      - CONNECTOR_RUN_AND_TERMINATE=false
+      - CONNECTOR_LOG_LEVEL=error
+      - CVE_BASE_URL=https://services.nvd.nist.gov/rest/json/cves
+      - CVE_API_KEY=${CVE_API_KEY_ID} # Required
+      - CVE_INTERVAL=2 # Required, in hours advice min 2
+      - CVE_MAX_DATE_RANGE=120 # In days, max 120
+      - CVE_MAINTAIN_DATA=true # Required, retrieve only updated data
+      - CVE_PULL_HISTORY=false # If true, CVE_HISTORY_START_YEAR is required
+      - CVE_HISTORY_START_YEAR=2019 # Required if pull_history is True, min 2019 (see documentation CVE and CVSS base score V3.1)
+    restart: always
+    networks:
+      - network_opencti
+    depends_on:
+      opencti:
+        condition: service_healthy
 volumes:
   esdata:
   s3data:
